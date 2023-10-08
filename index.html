@@ -62,6 +62,7 @@
             box-shadow: 0px 0px 20px 0px rgba(0, 0, 0, 0.1);
             text-align: center;
             transition: transform 0.3s;
+            position: relative;
         }
 
         .product:hover {
@@ -72,6 +73,18 @@
             max-width: 100%;
             border-radius: 15px;
             margin-bottom: 1.5rem;
+        }
+
+        .discount-bar {
+            background-color: #28a745;
+            color: white;
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            padding: 0.5rem;
+            border-top-left-radius: 15px;
+            border-top-right-radius: 15px;
         }
 
         .btn {
@@ -97,7 +110,7 @@
             text-align: center;
             position: fixed;
             top: 1rem;
-            left: 1rem;
+            right: 1rem;
             cursor: pointer;
             box-shadow: 0px 0px 20px 0px rgba(0, 0, 0, 0.1);
             transition: background-color 0.3s;
@@ -107,22 +120,41 @@
             background-color: #ff9800;
         }
 
-        .cart-content {
+        .modal {
             display: none;
-            position: absolute;
-            background-color: #ffffff;
-            min-width: 200px;
-            box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.1);
-            border-radius: 8px;
+            position: fixed;
             z-index: 1;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgb(0, 0, 0);
+            background-color: rgba(0, 0, 0, 0.4);
+            padding-top: 60px;
         }
 
-        .cart:hover .cart-content {
-            display: block;
+        .modal-content {
+            background-color: #fefefe;
+            margin: 5% auto;
+            padding: 2rem;
+            border: 1px solid #888;
+            border-radius: 10px;
+            width: 80%;
         }
 
-        .cart-item {
-            padding: 1rem;
+        .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+        }
+
+        .close:hover,
+        .close:focus {
+            color: black;
+            text-decoration: none;
+            cursor: pointer;
         }
 
         footer {
@@ -140,7 +172,7 @@
 
 <body>
     <header>
-        <h1>PEHLİCAN NUDE SHOP!</h1>
+        <h1>Murat'ın Kokmuş Ayakları</h1>
     </header>
     <nav>
         <a href="#">Anasayfa</a>
@@ -150,20 +182,23 @@
     </nav>
     <div class="container">
         <div class="product">
-            <img src="https://cdn.discordapp.com/attachments/1108794639479222292/1160545096547180584/image.png?ex=65350cd8&is=652297d8&hm=df7650d4369024a3edd72e7feee801389e4bd5c5326ac9432fb5fc223394cb75&" alt="Ürün 1">
+            <div class="discount-bar">İndirim: 15%</div>
+            <img src="urun1.jpg" alt="Ürün 1">
             <h2>Ürün 1</h2>
-            <p>MURAT PEHLİCANIN BOŞALMA GARANTİLİ AYAGI🥵🥵</p>
+            <p>Açıklama: Buraya ürün 1 ile ilgili açıklamalar gelebilir.</p>
             <p>Fiyat: $10.00</p>
             <button class="btn" onclick="addToCart('Ürün 1', 10.00)">Sepete Ekle</button>
         </div>
         <div class="product">
+            <div class="discount-bar">İndirim: 10%</div>
             <img src="urun2.jpg" alt="Ürün 2">
             <h2>Ürün 2</h2>
-            <p>MURAT PEHLİCANIN KİRLİ ÇAKMA AYAKKABISI İLE SEKSİ FOTOSU😍😋</p>
-            <p>Fiyat: $3</p>
+            <p>Açıklama: Buraya ürün 2 ile ilgili açıklamalar gelebilir.</p>
+            <p>Fiyat: $15.00</p>
             <button class="btn" onclick="addToCart('Ürün 2', 15.00)">Sepete Ekle</button>
         </div>
         <div class="product">
+            <div class="discount-bar">İndirim: 20%</div>
             <img src="urun3.jpg" alt="Ürün 3">
             <h2>Ürün 3</h2>
             <p>Açıklama: Buraya ürün 3 ile ilgili açıklamalar gelebilir.</p>
@@ -171,10 +206,16 @@
             <button class="btn" onclick="addToCart('Ürün 3', 20.00)">Sepete Ekle</button>
         </div>
     </div>
-    <div class="cart">
+    <div class="cart" onclick="showCart()">
         Sepetim
-        <div class="cart-content" id="cart">
-            <!-- Sepet içeriği buraya gelecek -->
+    </div>
+    <div id="cartModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="hideCart()">&times;</span>
+            <h2>Sepetiniz</h2>
+            <div id="cart"></div>
+            <h3>Toplam: $<span id="totalAmount">0.00</span></h3>
+            <button class="btn" onclick="checkout()">Satın Al</button>
         </div>
     </div>
     <footer>
@@ -184,8 +225,9 @@
     <script>
         var cartItems = [];
 
-        function addToCart(productName, price) {
-            cartItems.push({ name: productName, price: price });
+        function addToCart(productName, price, discount) {
+            var discountedPrice = price - (price * discount / 100);
+            cartItems.push({ name: productName, price: discountedPrice });
             updateCart();
         }
 
@@ -195,17 +237,39 @@
             var total = 0;
             for (var i = 0; i < cartItems.length; i++) {
                 var item = cartItems[i];
-                cartDiv.innerHTML += `<div class="cart-item">${item.name} - $${item.price.toFixed(2)}</div>`;
+                cartDiv.innerHTML += `<div>${item.name} - $${item.price.toFixed(2)}</div>`;
                 total += item.price;
             }
-            if (cartItems.length > 0) {
-                cartDiv.innerHTML += `<h3>Toplam: $${total.toFixed(2)}</h3>`;
-            } else {
-                cartDiv.innerHTML += `<p>Sepetiniz boş.</p>`;
-            }
+            var totalAmountElement = document.getElementById("totalAmount");
+            totalAmountElement.textContent = total.toFixed(2);
         }
+
+        function showCart() {
+            var modal = document.getElementById("cartModal");
+            modal.style.display = "block";
+        }
+
+        function hideCart() {
+            var modal = document.getElementById("cartModal");
+            modal.style.display = "none";
+        }
+
+        function checkout() {
+            alert("Satın alma işlemi tamamlandı!");
+            cartItems = [];
+            updateCart();
+            hideCart();
+        }
+
+        window.onclick = function (event) {
+            var modal = document.getElementById("cartModal");
+            if (event.target == modal) {
+                modal.style.display = "none";
+            }
+        };
     </script>
 </body>
 
 </html>
+
 
